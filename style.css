@@ -1,0 +1,36 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+#container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    border: 2px solid black; /* Explicit border */
+}
+
+canvas {
+    border: 2px solid black; /* Explicit border */
+    display: block; /* Ensure it's a block element */
+}
+
+#sidebar {
+    width: 200px;
+    border: 2px solid black; /* Sidebar border */
+    padding: 10px;
+}
+
+#controls {
+    margin-top: 20px;
+}
+
+button {
+    margin: 5px;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
