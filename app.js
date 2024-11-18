@@ -39,8 +39,8 @@ function calculateCircumferencePoint(x1, y1, x2, y2, radius) {
 }
 
 // Function to draw the reward and action in a box
-function drawRPBox(x, y, reward, action) {
-    const text = `R: ${reward}, A: ${action}`;
+function drawRPBox(x, y, reward, action, probability) {
+    const text = `R: ${reward}, A: ${action}, P: ${probability}`;
     const padding = 5;
 
     // Measure the text width
@@ -120,11 +120,12 @@ function drawArrow(fromX, fromY, toX, toY, isCurved = false) {
 
 // Transition representation (with arrows adjusted for circumference and RP box)
 class Transition {
-    constructor(fromState, toState, reward, action) {
+    constructor(fromState, toState, reward, action, probability) {
         this.fromState = fromState;
         this.toState = toState;
         this.reward = reward;
         this.action = action;
+        this.probability = probability;
     }
 
     draw() {
@@ -183,10 +184,9 @@ class Transition {
         }
 
         // Draw the rectangle at the calculated position
-        drawRPBox(midX, midY, this.reward, this.action);
+        drawRPBox(midX, midY, this.reward, this.action, this.probability);
     }
 }
-
 
 
 // Add State button logic
@@ -239,9 +239,10 @@ canvas.addEventListener('click', (e) => {
     
                     // Ask for reward and action
                     const reward = prompt('Enter reward:');
-                    const action = prompt('Enter transition action:');
-                    
-                    const transition = new Transition(fromState, toState, parseFloat(reward), parseInt(action));
+                    const action = prompt(`Enter transition action:`);
+                    const probability = prompt('Enter transition probability (0-1):');
+
+                    const transition = new Transition(fromState, toState, parseFloat(reward), parseInt(action), parseFloat(probability));
                     transitions.push(transition);
                     updateTransitionList();
                     selectedStates = [];
@@ -261,7 +262,7 @@ function updateTransitionList() {
     transitionList.innerHTML = '';
     transitions.forEach(transition => {
         const listItem = document.createElement('li');
-        listItem.textContent = `From ${transition.fromState.id} to ${transition.toState.id} - Reward: ${transition.reward}, action: ${transition.action}`;
+        listItem.textContent = `From ${transition.fromState.id} to ${transition.toState.id} - Reward: ${transition.reward}, Action: ${transition.action}, Probability: ${transition.probability}`;
         transitionList.appendChild(listItem);
     });
 }
@@ -275,8 +276,8 @@ function draw() {
 
 const solveButton = document.getElementById('solveButton');
 solveButton.addEventListener('click', () => {
-    updateQValues(); // Run Q-learning algorithm
-    displayQValues(); // Optionally display the Q-values
+    const q = updateQValues(); // Run Q-learning algorithm
+    displayQTable(q, 'qLearningTable'); // Optionally display the Q-values
 });
 
 function updateQValues() {
@@ -297,8 +298,17 @@ function updateQValues() {
 
     // Run the Q-learning algorithm
     for (let iteration = 0; iteration < maxIterations; iteration++) {
+
+        // initializing new q table with all values 0
+        const newQ = JSON.parse(JSON.stringify(q));
+        for (const state in newQ) {
+            for (const action in newQ[state]) {
+                newQ[state][action] = 0;
+            };
+        };
+
         transitions.forEach(transition => {
-            const { fromState, toState, reward, action } = transition;
+            const { fromState, toState, reward, action, probability } = transition;
 
             // Current Q-value
             const currentQ = q[fromState.id][action] || 0;
@@ -308,26 +318,14 @@ function updateQValues() {
             const maxNextQ = Math.max(...Object.values(nextStateQValues), 0);
 
             // Update Q-value using the formula
-            q[fromState.id][action] = currentQ + alpha * (reward + gamma * maxNextQ - currentQ);
+            newQ[fromState.id][action] += probability * (currentQ + alpha * (reward + gamma * maxNextQ - currentQ));
         });
+
+        Object.assign(q, newQ);
     }
 
     console.log("Q-table after solving:", q); // Debugging: print the Q-table
     return q; // Return Q-table for display
-}
-
-function displayQValues() {
-    const qTableList = document.getElementById('qTableList');
-    qTableList.innerHTML = ''; // Clear previous entries
-
-    const q = updateQValues(); // Get the updated Q-table
-    for (const state in q) {
-        for (const action in q[state]) {
-            const listItem = document.createElement('li');
-            listItem.textContent = `Q(${state}, ${action}): ${q[state][action].toFixed(2)}`;
-            qTableList.appendChild(listItem);
-        }
-    }
 }
 
 const solveBButton = document.getElementById('solveB');
@@ -346,12 +344,19 @@ solveBButton.addEventListener('click', () => {
 
     // Define parameters
     const discountFactor = 0.9; // Gamma
-    const iterations = 1;
+    const iterations = 1000;
 
     // Run Bellman iterations
     for (let iter = 0; iter < iterations; iter++) {
-        const newQ = JSON.parse(JSON.stringify(q)); // Clone Q-table for this iteration
 
+        // Clone Q-table for this iteration and set all values to 0
+        const newQ = JSON.parse(JSON.stringify(q));
+        for (const state in newQ) {
+            for (const action in newQ[state]) {
+                newQ[state][action] = 0;
+            };
+        };
+        
         // Loop through all states to update Q-values
         states.forEach(state => {
             transitions
@@ -361,13 +366,14 @@ solveBButton.addEventListener('click', () => {
                     const toState = transition.toState.id;
                     const reward = transition.reward;
                     const action = transition.action;
+                    const probability = transition.probability;
 
                     // Find max Q-value for the next state
                     const maxNextQ = Math.max(
                         0, ...Object.values(q[toState]) // Find the max Q-value for next state
                     );
                     // Bellman equation: Update Q-value for (fromState, action)
-                    newQ[fromState][action] = reward + discountFactor * maxNextQ;
+                    newQ[fromState][action] += probability * (reward + discountFactor * maxNextQ);
                 });
         });
 
@@ -377,31 +383,40 @@ solveBButton.addEventListener('click', () => {
 
     // Display final Q-table
     console.log('Final Q-Table after 1000 iterations:', q);
-    displayQTable(q);
+    displayQTable(q, 'bLearningTable');
 });
 
 // Function to display Q-table
-function displayQTable(q) {
-    const container = document.getElementById('qTableContainer') || document.createElement('div');
-    container.id = 'qTableContainer';
+function displayQTable(q, id) {
+    const container = document.getElementById(id) || document.createElement('div');
+    container.id = id;
     container.innerHTML = '<h3>Q-Table</h3>';
     const table = document.createElement('table');
     table.border = 1;
 
-    // Create table header
+    // Determine all unique actions across all states
+    const allActions = new Set();
+    Object.values(q).forEach(actions => {
+        Object.keys(actions).forEach(action => allActions.add(action));
+    });
+    const actionsArray = Array.from(allActions).sort((a, b) => a - b); // Sort actions numerically or alphabetically
+
+    // Create table header with action columns
     const headerRow = document.createElement('tr');
-    headerRow.innerHTML = `<th>State</th><th>Action</th><th>Q-Value</th>`;
+    headerRow.innerHTML = `<th>State</th>` + actionsArray.map(action => `<th>Action ${action}</th>`).join('');
     table.appendChild(headerRow);
 
-    // Populate table rows with state-action pairs and their Q-values
+    // Populate table rows with states and their corresponding action Q-values
     Object.keys(q).forEach(state => {
-        Object.keys(q[state]).forEach(action => {
-            const row = document.createElement('tr');
-            row.innerHTML = `<td>${state}</td><td>${action}</td><td>${q[state][action].toFixed(2)}</td>`;
-            table.appendChild(row);
-        });
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${state}</td>` + actionsArray.map(action => {
+            const qValue = q[state][action];
+            return `<td>${qValue !== undefined ? qValue.toFixed(2) : '-'}</td>`;
+        }).join('');
+        table.appendChild(row);
     });
 
     container.appendChild(table);
     document.body.appendChild(container);
 }
+
