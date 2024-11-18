@@ -12,16 +12,8 @@
     Click on 'Add Transition' and then click on 2 states to add a transition between them. <br>
 
     <div id="container">
-        <canvas id="mdpCanvas" width="600" height="400" style="border: 3px solid black;"></canvas>
-        <div id="controls">
-            <button id="addStateButton">Add State</button>
-            <button id="addTransitionButton">Add Transition</button>
-            <button id="solveButton">SolveQ</button>
-            <button id="solveB">SolveB</button>
-            <!-- Add the Next button to your HTML -->
-            <button id="nextB">Next</button>
-            <pre id="qTableDisplay"></pre> <!-- Display Q-table -->
-        </div>
+        <canvas id="mdpCanvas" width="1000" height="500" style="border: 3px solid black;"></canvas>
+        
         
         <div id="sidebar">
             <h2>Transitions</h2>
@@ -29,10 +21,18 @@
         </div>
     </div>
     
-
+    <div id="controls">
+        <button id="addStateButton">Add State</button>
+        <button id="addTransitionButton">Add Transition</button>
+        <button id="solveButton">SolveQ</button>
+        <button id="solveB">SolveB</button>
+        <!-- Add the Next button to your HTML -->
+        <button id="nextB">Next</button>
+        <pre id="qTableDisplay"></pre> <!-- Display Q-table -->
+    </div>
+    
     <ul id="qTableList"></ul>
-
-
+    
     <script src="app.js"></script>
 </body>
 </html>

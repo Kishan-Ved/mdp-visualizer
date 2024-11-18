@@ -260,12 +260,19 @@ canvas.addEventListener('click', (e) => {
 // Function to update the transition list in the sidebar
 function updateTransitionList() {
     transitionList.innerHTML = '';
-    transitions.forEach(transition => {
+    transitions.forEach((transition, index) => {
         const listItem = document.createElement('li');
         listItem.textContent = `From ${transition.fromState.id} to ${transition.toState.id} - Reward: ${transition.reward}, Action: ${transition.action}, Probability: ${transition.probability}`;
         transitionList.appendChild(listItem);
+
+        // Add a horizontal line if this is not the last item
+        if (index < transitions.length - 1) {
+            const hr = document.createElement('hr');
+            transitionList.appendChild(hr);
+        }
     });
 }
+
 
 // Draw all elements
 function draw() {
@@ -406,14 +413,16 @@ function displayQTable(q, id) {
     const container = document.getElementById(id) || document.createElement('div');
     container.id = id;
     
-    if(id=='bLearningTable'){
-        container.innerHTML = '<h3>Bellman-Table</h3>';
+    if (id == 'bLearningTable') {
+        container.innerHTML = '<h3 style="text-align: center;">Bellman-Table</h3>';
+    } else {
+        container.innerHTML = '<h3 style="text-align: center;">Q-Table</h3>';
     }
-    else {
-        container.innerHTML = '<h3>Q-Table</h3>';
-    }
+
     const table = document.createElement('table');
     table.border = 1;
+    table.style.margin = '0 auto'; // Center the table horizontally
+    table.style.textAlign = 'center'; // Center-align the content in cells
 
     // Determine all unique actions across all states
     const allActions = new Set();
@@ -421,6 +430,7 @@ function displayQTable(q, id) {
         Object.keys(actions).forEach(action => allActions.add(action));
     });
     const actionsArray = Array.from(allActions).sort((a, b) => a - b); // Sort actions numerically or alphabetically
+
     // Create table header with action columns
     const headerRow = document.createElement('tr');
     headerRow.innerHTML = `<th>State</th>` + actionsArray.map(action => `<th>Action ${action}</th>`).join('');
@@ -493,7 +503,7 @@ solveBButton.addEventListener('click', () => {
         // Initialize the Q-table and display it
         currentIteration = 0;
         initializeQTable();
-        displayQTable();
+        displayQTable(qb, 'bLearningTable');
     });
 });
 
