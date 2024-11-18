@@ -288,7 +288,7 @@ function updateTransitionList() {
     });
 }
 
-
+// Draw all elements
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     states.forEach(state => state.draw());
