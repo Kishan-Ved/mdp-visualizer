@@ -293,62 +293,6 @@ function draw() {
     transitions.forEach(transition => transition.draw());
 }
 
-function updateQValues() {
-    const alpha = 0.1; // Learning rate
-    const gamma = 0.9; // Discount factor
-    const maxIterations = 1000;
-
-    // Ensure the Q-table is initialized
-    const q = {};
-    states.forEach(state => {
-        q[state.id] = {};
-        transitions.forEach(transition => {
-            if (transition.fromState.id === state.id) {
-                q[state.id][transition.action] = 0; // Initialize all Q-values to 0
-            }
-        });
-    });
-
-    // Run the Q-learning algorithm
-    for (let iteration = 0; iteration < maxIterations; iteration++) {
-        transitions.forEach(transition => {
-            const { fromState, toState, reward, action } = transition;
-
-            // Current Q-value
-            const currentQ = q[fromState.id][action] || 0;
-
-            // Max Q-value for the next state
-            const nextStateQValues = q[toState.id] || {};
-            const maxNextQ = Math.max(...Object.values(nextStateQValues), 0);
-
-            // Update Q-value using the formula
-            q[fromState.id][action] = currentQ + alpha * (reward + gamma * maxNextQ - currentQ);
-        });
-    }
-
-    console.log("Q-table after solving:", q); // Debugging: print the Q-table
-    return q; // Return Q-table for display
-}
-
-function displayQValues() {
-    const qTableList = document.getElementById('qTableList');
-    qTableList.innerHTML = ''; // Clear previous entries
-
-    const q = updateQValues(); // Get the updated Q-table
-    for (const state in q) {
-        for (const action in q[state]) {
-            const listItem = document.createElement('li');
-            listItem.textContent = `Q(${state}, ${action}): ${q[state][action].toFixed(2)}`;
-            qTableList.appendChild(listItem);
-        }
-    }
-}
-
-const solveButton = document.getElementById('solveButton');
-solveButton.addEventListener('click', () => {
-    const q = updateQValues(); // Run Q-learning algorithm
-    displayQTable(q, 'qLearningTable'); // Optionally display the Q-values
-});
 
 let qb = {}; // Q-table
 let currentIteration = 0; // Track the current iteration
