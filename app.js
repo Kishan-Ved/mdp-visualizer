@@ -39,8 +39,8 @@ function calculateCircumferencePoint(x1, y1, x2, y2, radius) {
 }
 
 // Function to draw the reward and action in a box
-function drawRPBox(x, y, reward, action) {
-    const text = `R: ${reward}, A: ${action}`;
+function drawRPBox(x, y, reward, action, probability) {
+    const text = `R: ${reward}, A: ${action}, P: ${probability}`;
     const padding = 5;
 
     // Measure the text width
@@ -120,11 +120,12 @@ function drawArrow(fromX, fromY, toX, toY, isCurved = false) {
 
 // Transition representation (with arrows adjusted for circumference and RP box)
 class Transition {
-    constructor(fromState, toState, reward, action) {
+    constructor(fromState, toState, reward, action, probability) {
         this.fromState = fromState;
         this.toState = toState;
         this.reward = reward;
         this.action = action;
+        this.probability = probability;
     }
 
     draw() {
@@ -183,7 +184,7 @@ class Transition {
         }
 
         // Draw the rectangle at the calculated position
-        drawRPBox(midX, midY, this.reward, this.action);
+        drawRPBox(midX, midY, this.reward, this.action, this.probability);
     }
 }
 
@@ -239,9 +240,9 @@ canvas.addEventListener('click', (e) => {
     
                     // Ask for reward and action
                     const reward = prompt('Enter reward:');
-                    const action = prompt('Enter transition action (0 to 1):');
-                    
-                    const transition = new Transition(fromState, toState, parseFloat(reward), parseFloat(action));
+                    const action = prompt(`Enter transition action:`);
+                    const probability = prompt('Enter transition probability (0-1):');
+                    const transition = new Transition(fromState, toState, parseFloat(reward), parseInt(action), parseFloat(probability));
                     transitions.push(transition);
                     updateTransitionList();
                     selectedStates = [];
@@ -261,7 +262,7 @@ function updateTransitionList() {
     transitionList.innerHTML = '';
     transitions.forEach(transition => {
         const listItem = document.createElement('li');
-        listItem.textContent = `From ${transition.fromState.id} to ${transition.toState.id} - Reward: ${transition.reward}, action: ${transition.action}`;
+        listItem.textContent = `From ${transition.fromState.id} to ${transition.toState.id} - Reward: ${transition.reward}, Action: ${transition.action}, Probability: ${transition.probability}`;
         transitionList.appendChild(listItem);
     });
 }
@@ -326,8 +327,8 @@ function displayQValues() {
 
 const solveButton = document.getElementById('solveButton');
 solveButton.addEventListener('click', () => {
-    updateQValues(); // Run Q-learning algorithm
-    displayQValues(); // Optionally display the Q-values
+    const q = updateQValues(); // Run Q-learning algorithm
+    displayQTable(q, 'qLearningTable'); // Optionally display the Q-values
 });
 
 let qb = {}; // Q-table
@@ -350,7 +351,13 @@ function initializeQTable() {
 
 // Perform one iteration of the Bellman update
 function bellmanUpdate() {
-    var newQ = JSON.parse(JSON.stringify(qb)); // Clone Q-table for this iteration
+    // Clone Q-table for this iteration and set all values to 0
+    const newQ = JSON.parse(JSON.stringify(qb));
+    for (const state in newQ) {
+        for (const action in newQ[state]) {
+            newQ[state][action] = 0;
+        };
+    };
 
     // Loop through all states to update Q-values
     states.forEach(state => {
@@ -361,6 +368,7 @@ function bellmanUpdate() {
                 const toState = transition.toState.id;
                 const reward = transition.reward;
                 const action = transition.action;
+                const probability = transition.probability;
 
                 // Ensure newQ[fromState] exists
             if (!newQ[fromState]) {
@@ -383,7 +391,7 @@ function bellmanUpdate() {
                 );
 
                 // Update Q-value for (fromState, action)
-                newQ[fromState][action] = reward + discountFactor * maxNextQ;
+                newQ[fromState][action] += probability * (reward + discountFactor * maxNextQ);
 
             });
     });
@@ -394,10 +402,42 @@ function bellmanUpdate() {
     currentIteration++; // Increment iteration counter
 }
 
-// Display the Q-table in the UI
-function displayQTable() {
-    const qTableDisplay = document.getElementById("qTableDisplay");
-    qTableDisplay.textContent = `Iteration: ${currentIteration}\n` + JSON.stringify(qb, null, 2);
+function displayQTable(q, id) {
+    const container = document.getElementById(id) || document.createElement('div');
+    container.id = id;
+    
+    if(id=='bLearningTable'){
+        container.innerHTML = '<h3>Bellman-Table</h3>';
+    }
+    else {
+        container.innerHTML = '<h3>Q-Table</h3>';
+    }
+    const table = document.createElement('table');
+    table.border = 1;
+
+    // Determine all unique actions across all states
+    const allActions = new Set();
+    Object.values(q).forEach(actions => {
+        Object.keys(actions).forEach(action => allActions.add(action));
+    });
+    const actionsArray = Array.from(allActions).sort((a, b) => a - b); // Sort actions numerically or alphabetically
+    // Create table header with action columns
+    const headerRow = document.createElement('tr');
+    headerRow.innerHTML = `<th>State</th>` + actionsArray.map(action => `<th>Action ${action}</th>`).join('');
+    table.appendChild(headerRow);
+
+    // Populate table rows with states and their corresponding action Q-values
+    Object.keys(q).forEach(state => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${state}</td>` + actionsArray.map(action => {
+            const qValue = q[state][action];
+            return `<td>${qValue !== undefined ? qValue.toFixed(2) : '-'}</td>`;
+        }).join('');
+        table.appendChild(row);
+    });
+
+    container.appendChild(table);
+    document.body.appendChild(container);
 }
 
 // Add event listener for the Next button
@@ -405,7 +445,7 @@ const nextBButton = document.getElementById('nextB');
 nextBButton.addEventListener('click', () => {
     if (currentIteration < iterations) {
         bellmanUpdate(); // Perform one iteration
-        displayQTable(); // Update display
+        displayQTable(qb, 'bLearningTable');
     } else {
         alert('All iterations completed!');
     }
