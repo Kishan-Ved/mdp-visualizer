@@ -431,18 +431,31 @@ function displayQTable(q, id) {
     });
     const actionsArray = Array.from(allActions).sort((a, b) => a - b); // Sort actions numerically or alphabetically
 
-    // Create table header with action columns
+    // Create table header with action columns and "Max Value" column
     const headerRow = document.createElement('tr');
-    headerRow.innerHTML = `<th>State</th>` + actionsArray.map(action => `<th>Action ${action}</th>`).join('');
+    headerRow.innerHTML = `<th>State</th>` 
+        + actionsArray.map(action => `<th>Action ${action}</th>`).join('') 
+        + `<th><strong>Max Value</strong></th>`; // Make the header bold
     table.appendChild(headerRow);
 
-    // Populate table rows with states and their corresponding action Q-values
+    // Populate table rows with states, their corresponding action Q-values, and the max value
     Object.keys(q).forEach(state => {
         const row = document.createElement('tr');
-        row.innerHTML = `<td>${state}</td>` + actionsArray.map(action => {
+        let maxValue = Number.NEGATIVE_INFINITY; // Initialize max value
+
+        // Generate cells for each action's Q-value
+        const actionCells = actionsArray.map(action => {
             const qValue = q[state][action];
+            if (qValue !== undefined) {
+                maxValue = Math.max(maxValue, qValue); // Update max value
+            }
             return `<td>${qValue !== undefined ? qValue.toFixed(2) : '-'}</td>`;
         }).join('');
+
+        // Add row with state, action Q-values, and max value
+        row.innerHTML = `<td>${state}</td>` 
+            + actionCells 
+            + `<td><strong>${maxValue !== Number.NEGATIVE_INFINITY ? maxValue.toFixed(2) : '-'}</strong></td>`; // Make max value bold
         table.appendChild(row);
     });
 
