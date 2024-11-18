@@ -5,7 +5,7 @@ const addTransitionButton = document.getElementById('addTransitionButton');
 const transitionList = document.getElementById('transitionList');
 
 let states = [];
-let transitions = [];
+let transitions = {};
 let selectedStates = [];
 let isAddingState = false;
 let isAddingTransition = false;
@@ -39,8 +39,8 @@ function calculateCircumferencePoint(x1, y1, x2, y2, radius) {
 }
 
 // Function to draw the reward and action in a box
-function drawRPBox(x, y, reward, action) {
-    const text = `R: ${reward}, A: ${action}`;
+function drawRPBox(x, y, reward, action, probability) {
+    const text = `R: ${reward}, A: ${action}, P: ${probability}`;
     const padding = 5;
 
     // Measure the text width
@@ -57,10 +57,25 @@ function drawRPBox(x, y, reward, action) {
 }
 
 function isOppositeArrow(fromState, toState) {
-    return transitions.some(transition =>
-        (transition.toState === fromState) && (transition.fromState == toState)
-    );
+    // Iterate over all fromStates in the transitions object
+    for (const [state, actions] of Object.entries(transitions)) {
+        // Check if the state matches the target toState
+        if (state === toState) {
+            // Iterate over each action
+            for (const actionTransitions of Object.values(actions)) {
+                // Check all transitions for this action
+                for (const [nextState] of actionTransitions) {
+                    // If any nextState matches the original fromState, return true
+                    if (nextState === fromState) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
 }
+
 
 function drawArrow(fromX, fromY, toX, toY, isCurved = false) {
     const headlen = 10; // Length of arrowhead
@@ -120,11 +135,12 @@ function drawArrow(fromX, fromY, toX, toY, isCurved = false) {
 
 // Transition representation (with arrows adjusted for circumference and RP box)
 class Transition {
-    constructor(fromState, toState, reward, action) {
+    constructor(fromState, toState, reward, action, probability) {
         this.fromState = fromState;
         this.toState = toState;
         this.reward = reward;
         this.action = action;
+        this.probability = probability;
     }
 
     draw() {
@@ -183,7 +199,7 @@ class Transition {
         }
 
         // Draw the rectangle at the calculated position
-        drawRPBox(midX, midY, this.reward, this.action);
+        drawRPBox(midX, midY, this.reward, this.action, this.probability);
     }
 }
 
@@ -240,9 +256,15 @@ canvas.addEventListener('click', (e) => {
                     // Ask for reward and action
                     const reward = prompt('Enter reward:');
                     const action = prompt('Enter transition action:');
+                    const probability = prompt('Enter probability:');
                     
-                    const transition = new Transition(fromState, toState, parseFloat(reward), parseInt(action));
-                    transitions.push(transition);
+                    if (transitions[fromState]) {
+                        if (transitions[fromState][action]) {transitions[fromState][action].push([toState, reward, probability])}
+                        else {transitions[fromState][action] = [[toState, reward, probability]];}
+                    }
+                    else {
+                        transitions[fromState] = {action : [[toState, reward, probability]]}
+                    }
                     updateTransitionList();
                     selectedStates = [];
                     draw();
@@ -266,12 +288,13 @@ function updateTransitionList() {
     });
 }
 
-// Draw all elements
+
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     states.forEach(state => state.draw());
     transitions.forEach(transition => transition.draw());
 }
+
 
 const solveButton = document.getElementById('solveButton');
 solveButton.addEventListener('click', () => {
@@ -346,7 +369,7 @@ solveBButton.addEventListener('click', () => {
 
     // Define parameters
     const discountFactor = 0.9; // Gamma
-    const iterations = 1;
+    const iterations = 1000;
 
     // Run Bellman iterations
     for (let iter = 0; iter < iterations; iter++) {
@@ -361,11 +384,13 @@ solveBButton.addEventListener('click', () => {
                     const toState = transition.toState.id;
                     const reward = transition.reward;
                     const action = transition.action;
+                    const prob = transition.probability;
 
                     // Find max Q-value for the next state
                     const maxNextQ = Math.max(
                         0, ...Object.values(q[toState]) // Find the max Q-value for next state
                     );
+
                     // Bellman equation: Update Q-value for (fromState, action)
                     newQ[fromState][action] = reward + discountFactor * maxNextQ;
                 });
