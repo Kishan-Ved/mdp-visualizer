@@ -20,14 +20,19 @@ class State {
     }
 
     draw() {
+        // Draw the circle
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = '#fff'; // White fill for the circle
         ctx.fill();
+        ctx.strokeStyle = '#000'; // Black border for the circle
         ctx.stroke();
-        ctx.fillStyle = '#000';
+    
+        // Draw the ID inside the circle
+        ctx.fillStyle = '#000'; // Black text color
         ctx.fillText(this.id, this.x - 5, this.y + 5);
     }
+    
 }
 
 // Function to calculate point on circle's circumference
@@ -47,14 +52,21 @@ function drawRPBox(x, y, reward, action, probability) {
     const textWidth = ctx.measureText(text).width;
     const textHeight = 16; // Approximate text height
 
-    // Set blue background and white text
-    ctx.fillStyle = 'blue';
+    // Draw white background box
+    ctx.fillStyle = 'white';
     ctx.fillRect(x - textWidth / 2 - padding, y - textHeight / 2 - padding, textWidth + 2 * padding, textHeight + 2 * padding);
 
-    // Set text color and draw the text
-    ctx.fillStyle = 'white';
+    // Draw blue border
+    ctx.strokeStyle = 'blue';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - textWidth / 2 - padding, y - textHeight / 2 - padding, textWidth + 2 * padding, textHeight + 2 * padding);
+    
+    // Set black text color and draw the text
+    ctx.fillStyle = 'black';
     ctx.fillText(text, x - textWidth / 2, y + textHeight / 4);
+    ctx.strokeStyle = 'black';
 }
+
 
 function isOppositeArrow(fromState, toState) {
     return transitions.some(transition =>
@@ -449,13 +461,13 @@ function displayQTable(q, id) {
             if (qValue !== undefined) {
                 maxValue = Math.max(maxValue, qValue); // Update max value
             }
-            return `<td>${qValue !== undefined ? qValue.toFixed(2) : '-'}</td>`;
+            return `<td>${qValue !== undefined ? qValue.toFixed(6) : '-'}</td>`;
         }).join('');
 
         // Add row with state, action Q-values, and max value
         row.innerHTML = `<td>${state}</td>` 
             + actionCells 
-            + `<td><strong>${maxValue !== Number.NEGATIVE_INFINITY ? maxValue.toFixed(2) : '-'}</strong></td>`; // Make max value bold
+            + `<td><strong>${maxValue !== Number.NEGATIVE_INFINITY ? maxValue.toFixed(6) : '-'}</strong></td>`; // Make max value bold
         table.appendChild(row);
     });
 
