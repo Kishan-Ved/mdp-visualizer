@@ -40,7 +40,7 @@ function calculateCircumferencePoint(x1, y1, x2, y2, radius) {
 
 // Function to draw the reward and action in a box
 function drawRPBox(x, y, reward, action) {
-    const text = `R: ${reward}, P: ${action}`;
+    const text = `R: ${reward}, A: ${action}`;
     const padding = 5;
 
     // Measure the text width
@@ -58,7 +58,7 @@ function drawRPBox(x, y, reward, action) {
 
 function isOppositeArrow(fromState, toState) {
     return transitions.some(transition =>
-        transition.toState === fromState
+        transition.toState === fromState && transition.fromState === toState
     );
 }
 
@@ -191,15 +191,27 @@ class Transition {
 
 // Add State button logic
 addStateButton.addEventListener('click', () => {
-    isAddingState = true;
+    isAddingState = ~isAddingState;
     isAddingTransition = false;
+    addTransitionButton.innerText = "Add Transition";
+    if (isAddingState) {
+        addStateButton.innerText = "Stop Adding State";
+    } else {
+        addStateButton.innerText = "Add State";
+    }
 });
 
 // Add Transition button logic
 addTransitionButton.addEventListener('click', () => {
-    isAddingTransition = true;
+    isAddingTransition = ~isAddingTransition;
     isAddingState = false;
     selectedStates = [];
+    addStateButton.innerText = "Add State";
+    if (isAddingTransition) {
+        addTransitionButton.innerText = "Stop Adding Transition";
+    } else {
+        addTransitionButton.innerText = "Add Transition";
+    }
 });
 
 // Canvas click event to add state or transition
@@ -261,12 +273,6 @@ function draw() {
     transitions.forEach(transition => transition.draw());
 }
 
-const solveButton = document.getElementById('solveButton');
-solveButton.addEventListener('click', () => {
-    updateQValues(); // Run Q-learning algorithm
-    displayQValues(); // Optionally display the Q-values
-});
-
 function updateQValues() {
     const alpha = 0.1; // Learning rate
     const gamma = 0.9; // Discount factor
@@ -318,79 +324,136 @@ function displayQValues() {
     }
 }
 
-const solveBButton = document.getElementById('solveB');
+const solveButton = document.getElementById('solveButton');
+solveButton.addEventListener('click', () => {
+    updateQValues(); // Run Q-learning algorithm
+    displayQValues(); // Optionally display the Q-values
+});
 
-solveBButton.addEventListener('click', () => {
-    // Initialize Q-table
-    const q = {};
+let qb = {}; // Q-table
+let currentIteration = 0; // Track the current iteration
+const iterations = 1000; // Total number of iterations
+var discountFactor = 0.9; // Gamma
+
+// Initialize Q-table
+function initializeQTable() {
+    qb = {};
     states.forEach(state => {
-        q[state.id] = {}; // Create an entry for each state
+        qb[state.id] = {}; // Create an entry for each state
         transitions
             .filter(transition => transition.fromState.id === state.id)
             .forEach(transition => {
-                q[state.id][transition.action] = 0; // Initialize Q-values to 0
+                qb[state.id][transition.action] = 0; // Initialize Q-values to 0
+            });
+    });
+}
+
+// Perform one iteration of the Bellman update
+function bellmanUpdate() {
+    var newQ = JSON.parse(JSON.stringify(qb)); // Clone Q-table for this iteration
+
+    // Loop through all states to update Q-values
+    states.forEach(state => {
+        transitions
+            .filter(transition => transition.fromState.id === state.id)
+            .forEach(transition => {
+                const fromState = transition.fromState.id;
+                const toState = transition.toState.id;
+                const reward = transition.reward;
+                const action = transition.action;
+
+                // Ensure newQ[fromState] exists
+            if (!newQ[fromState]) {
+                newQ[fromState] = {};
+            }
+
+                // Ensure qb[toState] exists
+                if (!qb[toState]) {
+                    qb[toState] = {};
+                    transitions
+                        .filter(t => t.fromState.id === toState)
+                        .forEach(t => {
+                            qb[toState][t.action] = 0;
+                        });
+                }
+
+                // Find max Q-value for the next state
+                const maxNextQ = Math.max(
+                    0, ...Object.values(qb[toState]) // Ensure toState actions are valid
+                );
+
+                // Update Q-value for (fromState, action)
+                newQ[fromState][action] = reward + discountFactor * maxNextQ;
+
             });
     });
 
-    // Define parameters
-    const discountFactor = 0.9; // Gamma
-    const iterations = 1000;
+    // Update Q-table with new values
+    // Object.assign(qb, newQ);
+    qb = JSON.parse(JSON.stringify(newQ));
+    currentIteration++; // Increment iteration counter
+}
 
-    // Run Bellman iterations
-    for (let iter = 0; iter < iterations; iter++) {
-        const newQ = JSON.parse(JSON.stringify(q)); // Clone Q-table for this iteration
+// Display the Q-table in the UI
+function displayQTable() {
+    const qTableDisplay = document.getElementById("qTableDisplay");
+    qTableDisplay.textContent = `Iteration: ${currentIteration}\n` + JSON.stringify(qb, null, 2);
+}
 
-        // Loop through all states to update Q-values
-        states.forEach(state => {
-            transitions
-                .filter(transition => transition.fromState.id === state.id)
-                .forEach(transition => {
-                    const fromState = transition.fromState.id;
-                    const toState = transition.toState.id;
-                    const reward = transition.reward;
-                    const action = transition.action;
-
-                    // Find max Q-value for the next state
-                    const maxNextQ = Math.max(
-                        ...Object.values(q[toState] || { 0: 0 }) // Find the max Q-value for next state
-                    );
-
-                    // Bellman equation: Update Q-value for (fromState, action)
-                    newQ[fromState][action] = reward + discountFactor * maxNextQ;
-                });
-        });
-
-        // After all states are processed, update Q-table with new values
-        Object.assign(q, newQ);
+// Add event listener for the Next button
+const nextBButton = document.getElementById('nextB');
+nextBButton.addEventListener('click', () => {
+    if (currentIteration < iterations) {
+        bellmanUpdate(); // Perform one iteration
+        displayQTable(); // Update display
+    } else {
+        alert('All iterations completed!');
     }
-
-    // Display final Q-table
-    console.log('Final Q-Table after 1000 iterations:', q);
-    displayQTable(q);
 });
 
-// Function to display Q-table
-function displayQTable(q) {
-    const container = document.getElementById('qTableContainer') || document.createElement('div');
-    container.id = 'qTableContainer';
-    container.innerHTML = '<h3>Q-Table</h3>';
-    const table = document.createElement('table');
-    table.border = 1;
+const solveBButton = document.getElementById('solveB');
+solveBButton.addEventListener('click', () => {
+    // Create a text input and set button for discountFactor
+    const container = document.getElementById('controls'); // Assuming a div with id 'controls' exists
+    const discountInput = document.createElement('input');
+    discountInput.type = 'number';
+    discountInput.step = '0.01';
+    discountInput.min = '0';
+    discountInput.max = '1';
+    discountInput.placeholder = 'Enter discount factor (0-1)';
+    discountInput.id = 'discountInput';
+    discountInput.style.width = '200px'; // Adjust width as needed
 
-    // Create table header
-    const headerRow = document.createElement('tr');
-    headerRow.innerHTML = `<th>State</th><th>Action</th><th>Q-Value</th>`;
-    table.appendChild(headerRow);
+    const setButton = document.createElement('button');
+    setButton.textContent = 'Set';
+    setButton.id = 'setButton';
 
-    // Populate table rows with state-action pairs and their Q-values
-    Object.keys(q).forEach(state => {
-        Object.keys(q[state]).forEach(action => {
-            const row = document.createElement('tr');
-            row.innerHTML = `<td>${state}</td><td>${action}</td><td>${q[state][action].toFixed(2)}</td>`;
-            table.appendChild(row);
-        });
+    // Append input and button to the container
+    container.appendChild(discountInput);
+    container.appendChild(setButton);
+
+    // Handle Set button click
+    setButton.addEventListener('click', () => {
+        const inputVal = parseFloat(discountInput.value);
+
+        if (isNaN(inputVal) || inputVal < 0 || inputVal > 1) {
+            alert('Please enter a valid discount factor between 0 and 1.');
+            container.removeChild(discountInput);
+            container.removeChild(setButton);
+            return;
+        }
+
+        discountFactor = inputVal; // Update the global discountFactor
+        // alert(`Discount factor set to ${discountFactor}`);
+
+        // Remove the input and button from the UI
+        container.removeChild(discountInput);
+        container.removeChild(setButton);
+
+        // Initialize the Q-table and display it
+        currentIteration = 0;
+        initializeQTable();
+        displayQTable();
     });
+});
 
-    container.appendChild(table);
-    document.body.appendChild(container);
-}

@@ -13,6 +13,15 @@
 
     <div id="container">
         <canvas id="mdpCanvas" width="600" height="400" style="border: 3px solid black;"></canvas>
+        <div id="controls">
+            <button id="addStateButton">Add State</button>
+            <button id="addTransitionButton">Add Transition</button>
+            <button id="solveButton">SolveQ</button>
+            <button id="solveB">SolveB</button>
+            <!-- Add the Next button to your HTML -->
+            <button id="nextB">Next</button>
+            <pre id="qTableDisplay"></pre> <!-- Display Q-table -->
+        </div>
         
         <div id="sidebar">
             <h2>Transitions</h2>
@@ -20,12 +29,6 @@
         </div>
     </div>
     
-    <div id="controls">
-        <button id="addStateButton">Add State</button>
-        <button id="addTransitionButton">Add Transition</button>
-        <button id="solveButton">SolveQ</button>
-        <button id="solveB">SolveB</button>
-    </div>
 
     <ul id="qTableList"></ul>
 
