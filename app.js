@@ -430,37 +430,138 @@ function initializeQTable() {
 //   //   alert(`Iteration ${currentIteration} completed!`);
 // }
 
-function bellmanUpdate() {
-  // Clone Q-table for this iteration and set all values to 0
+// function bellmanUpdate() {
+//   // Clone Q-table for this iteration and set all values to 0
+//   const newQ = JSON.parse(JSON.stringify(qb));
+
+//   // Loop through all states
+//   states.forEach((state) => {
+//     const fromState = state.id;
+
+//     // Get all transitions originating from this state
+//     const stateTransitions = transitions.filter(
+//       (transition) => transition.fromState.id === fromState
+//     );
+
+//     // Extract all actions for this state
+//     const actions = [...new Set(stateTransitions.map((t) => t.action))];
+
+//     // Loop over all actions for this state
+//     actions.forEach((action) => {
+//       // Collect all transitions for (s, a)
+//       const saTransitions = stateTransitions.filter(
+//         (transition) => transition.action === action
+//       );
+
+//       // Compute the Q-value for (s, a) by summing over all (s, a, s') pairs
+//       let qValue = 0;
+//       saTransitions.forEach((transition) => {
+//         const toState = transition.toState.id;
+//         const reward = transition.reward;
+//         const probability = transition.probability;
+
+//         // Ensure qb[toState] exists
+//         if (!qb[toState]) {
+//           qb[toState] = {};
+//           transitions
+//             .filter((t) => t.fromState.id === toState)
+//             .forEach((t) => {
+//               qb[toState][t.action] = 0;
+//             });
+//         }
+
+//         // Find max Q-value for the next state
+//         const maxNextQ = Math.max(
+//           0,
+//           ...Object.values(qb[toState]) // Ensure toState actions are valid
+//         );
+
+//         // Update Q-value for (s, a, s')
+//         qValue += probability * (reward + discountFactor * maxNextQ);
+//       });
+
+//       //   // Update newQ for (s, a)
+//       //   if (!newQ[fromState]) {
+//       //     newQ[fromState] = {};
+//       //   }
+//       newQ[fromState][action] = qValue;
+//     });
+//   });
+
+//   // Update Q-table with new values
+//   qb = JSON.parse(JSON.stringify(newQ));
+//   currentIteration++; // Increment iteration counter
+// }
+
+function highlightTransition(transition) {
+  const { fromState, toState } = transition;
+  ctx.save();
+  ctx.strokeStyle = "red";
+  ctx.lineWidth = 3;
+  transition.draw();
+  ctx.restore();
+}
+
+function highlightState(state) {
+  ctx.save();
+  ctx.strokeStyle = "green";
+  ctx.lineWidth = 3;
+  state.draw();
+  ctx.restore();
+}
+
+function displayComputation(
+  fromState,
+  action,
+  toState,
+  reward,
+  probability,
+  maxNextQ
+) {
+  const computationDiv =
+    document.getElementById("computation") || document.createElement("div");
+  computationDiv.id = "computation";
+  computationDiv.innerHTML = `
+                                <h3>Computation of Q(${fromState}, ${action})</h3>
+                                <p>Transition: ${fromState} -> ${toState}</p>
+                                <p>Reward: ${reward}</p>
+                                <p>Probability: ${probability}</p>
+                                <p>V_k(${toState}): ${maxNextQ.toFixed(6)}</p>
+                                <p>Contribution to Q(${fromState}, ${action}): ${
+    probability * (reward + discountFactor * maxNextQ).toFixed(6)
+  }</p>
+                                <p>LaTeX: \( Q(${fromState}, ${action}) = ${probability} \times (${reward} + ${discountFactor} \times V_k(${toState})) \)</p>
+                `;
+  document.body.appendChild(computationDiv);
+}
+
+async function bellmanUpdate() {
   const newQ = JSON.parse(JSON.stringify(qb));
 
-  // Loop through all states
-  states.forEach((state) => {
+  for (const state of states) {
     const fromState = state.id;
+    highlightState(state);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Get all transitions originating from this state
     const stateTransitions = transitions.filter(
       (transition) => transition.fromState.id === fromState
     );
-
-    // Extract all actions for this state
     const actions = [...new Set(stateTransitions.map((t) => t.action))];
 
-    // Loop over all actions for this state
-    actions.forEach((action) => {
-      // Collect all transitions for (s, a)
+    for (const action of actions) {
       const saTransitions = stateTransitions.filter(
         (transition) => transition.action === action
       );
 
-      // Compute the Q-value for (s, a) by summing over all (s, a, s') pairs
       let qValue = 0;
-      saTransitions.forEach((transition) => {
+      for (const transition of saTransitions) {
+        highlightTransition(transition);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         const toState = transition.toState.id;
         const reward = transition.reward;
         const probability = transition.probability;
 
-        // Ensure qb[toState] exists
         if (!qb[toState]) {
           qb[toState] = {};
           transitions
@@ -470,27 +571,29 @@ function bellmanUpdate() {
             });
         }
 
-        // Find max Q-value for the next state
-        const maxNextQ = Math.max(
-          0,
-          ...Object.values(qb[toState]) // Ensure toState actions are valid
+        const maxNextQ = Math.max(0, ...Object.values(qb[toState]));
+
+        displayComputation(
+          fromState,
+          action,
+          toState,
+          reward,
+          probability,
+          maxNextQ
         );
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        // Update Q-value for (s, a, s')
         qValue += probability * (reward + discountFactor * maxNextQ);
-      });
+      }
 
-      //   // Update newQ for (s, a)
-      //   if (!newQ[fromState]) {
-      //     newQ[fromState] = {};
-      //   }
       newQ[fromState][action] = qValue;
-    });
-  });
+    }
 
-  // Update Q-table with new values
+    draw(); // Redraw to remove highlights
+  }
+
   qb = JSON.parse(JSON.stringify(newQ));
-  currentIteration++; // Increment iteration counter
+  currentIteration++;
 }
 
 function displayQTable(q, id) {
