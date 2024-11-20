@@ -379,120 +379,6 @@ function initializeQTable() {
   });
 }
 
-// // Perform one iteration of the Bellman update
-// function bellmanUpdate() {
-//   // Clone Q-table for this iteration and set all values to 0
-//   const newQ = JSON.parse(JSON.stringify(qb));
-
-//   // Loop through all states to update Q-values
-//   states.forEach((state) => {
-//     var transitionNew = transitions.filter(
-//       (transition) => transition.fromState.id === state.id
-//     );
-
-//     transitionNew.forEach((transition) => {
-//       const fromState = transition.fromState.id;
-//       const toState = transition.toState.id;
-//       const reward = transition.reward;
-//       const action = transition.action;
-//       const probability = transition.probability;
-
-//       // Ensure newQ[fromState] exists
-//       if (!newQ[fromState]) {
-//         newQ[fromState] = {};
-//       }
-
-//       // Ensure qb[toState] exists
-//       if (!qb[toState]) {
-//         qb[toState] = {};
-//         transitions
-//           .filter((t) => t.fromState.id === toState)
-//           .forEach((t) => {
-//             qb[toState][t.action] = 0;
-//           });
-//       }
-
-//       // Find max Q-value for the next state
-//       const maxNextQ = Math.max(
-//         0,
-//         ...Object.values(qb[toState]) // Ensure toState actions are valid
-//       );
-
-//       // Update Q-value for (fromState, action)
-//       newQ[fromState][action] +=
-//         probability * (reward + discountFactor * maxNextQ);
-//     });
-//   });
-
-//   // Update Q-table with new values
-//   qb = JSON.parse(JSON.stringify(newQ));
-//   currentIteration++; // Increment iteration counter
-//   //   alert(`Iteration ${currentIteration} completed!`);
-// }
-
-// function bellmanUpdate() {
-//   // Clone Q-table for this iteration and set all values to 0
-//   const newQ = JSON.parse(JSON.stringify(qb));
-
-//   // Loop through all states
-//   states.forEach((state) => {
-//     const fromState = state.id;
-
-//     // Get all transitions originating from this state
-//     const stateTransitions = transitions.filter(
-//       (transition) => transition.fromState.id === fromState
-//     );
-
-//     // Extract all actions for this state
-//     const actions = [...new Set(stateTransitions.map((t) => t.action))];
-
-//     // Loop over all actions for this state
-//     actions.forEach((action) => {
-//       // Collect all transitions for (s, a)
-//       const saTransitions = stateTransitions.filter(
-//         (transition) => transition.action === action
-//       );
-
-//       // Compute the Q-value for (s, a) by summing over all (s, a, s') pairs
-//       let qValue = 0;
-//       saTransitions.forEach((transition) => {
-//         const toState = transition.toState.id;
-//         const reward = transition.reward;
-//         const probability = transition.probability;
-
-//         // Ensure qb[toState] exists
-//         if (!qb[toState]) {
-//           qb[toState] = {};
-//           transitions
-//             .filter((t) => t.fromState.id === toState)
-//             .forEach((t) => {
-//               qb[toState][t.action] = 0;
-//             });
-//         }
-
-//         // Find max Q-value for the next state
-//         const maxNextQ = Math.max(
-//           0,
-//           ...Object.values(qb[toState]) // Ensure toState actions are valid
-//         );
-
-//         // Update Q-value for (s, a, s')
-//         qValue += probability * (reward + discountFactor * maxNextQ);
-//       });
-
-//       //   // Update newQ for (s, a)
-//       //   if (!newQ[fromState]) {
-//       //     newQ[fromState] = {};
-//       //   }
-//       newQ[fromState][action] = qValue;
-//     });
-//   });
-
-//   // Update Q-table with new values
-//   qb = JSON.parse(JSON.stringify(newQ));
-//   currentIteration++; // Increment iteration counter
-// }
-
 function highlightTransition(transition) {
   const { fromState, toState } = transition;
   ctx.save();
@@ -518,21 +404,51 @@ function displayComputation(
   probability,
   maxNextQ
 ) {
+  // Create or retrieve the computation display div
   const computationDiv =
     document.getElementById("computation") || document.createElement("div");
+
+  // Set up the computation div
   computationDiv.id = "computation";
+  computationDiv.style.position = "fixed";
+  computationDiv.style.bottom = "20px";
+  computationDiv.style.right = "20px";
+  computationDiv.style.background = "rgba(255, 255, 255, 0.9)";
+  computationDiv.style.border = "1px solid #ccc";
+  computationDiv.style.borderRadius = "10px";
+  computationDiv.style.padding = "15px";
+  computationDiv.style.width = "500px";
+  computationDiv.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+  computationDiv.style.zIndex = "1000";
+
+  // Populate content with computation details
   computationDiv.innerHTML = `
-                                <h3>Computation of Q(${fromState}, ${action})</h3>
-                                <p>Transition: ${fromState} -> ${toState}</p>
-                                <p>Reward: ${reward}</p>
-                                <p>Probability: ${probability}</p>
-                                <p>V_k(${toState}): ${maxNextQ.toFixed(6)}</p>
-                                <p>Contribution to Q(${fromState}, ${action}): ${
-    probability * (reward + discountFactor * maxNextQ).toFixed(6)
-  }</p>
-                                <p>LaTeX: \( Q(${fromState}, ${action}) = ${probability} \times (${reward} + ${discountFactor} \times V_k(${toState})) \)</p>
-                `;
-  document.body.appendChild(computationDiv);
+  <h3>$$Q(s, a) = \\sum_{s'} P(s'|s, a) \\big[R(s, a, s') + \\gamma \\max_{a'} Q(s', a')\\big]$$</h3>
+  <h3>Computation of \\( Q(${fromState}, ${action}) \\)</h3>
+  <p><strong>Transition:</strong> \\( ${fromState} \\to ${toState} \\)</p>
+  <p><strong>Reward:</strong> \\( ${reward} \\)</p>
+  <p><strong>Probability:</strong> \\( ${probability} \\)</p>
+  <p><strong>\\( V_k(${toState}): \\)</strong> \\( ${maxNextQ.toFixed(
+    6
+  )} \\)</p>
+  <p><strong>Contribution to \\( Q(${fromState}, ${action}) \\):</strong></p>
+  <p>
+    \\[
+    ${probability} \\times (${reward} + ${discountFactor} \\times ${maxNextQ.toFixed(
+    6
+  )}) 
+    = ${(probability * (reward + discountFactor * maxNextQ)).toFixed(6)} 
+    \\]
+  </p>
+`;
+
+  // Append to the body if not already added
+  if (!document.body.contains(computationDiv)) {
+    document.body.appendChild(computationDiv);
+  }
+
+  // Trigger MathJax rendering
+  MathJax.typeset();
 }
 
 async function bellmanUpdate() {
@@ -601,16 +517,16 @@ function displayQTable(q, id) {
     document.getElementById(id) || document.createElement("div");
   container.id = id;
 
-  if (id == "bLearningTable") {
-    container.innerHTML = '<h3 style="text-align: center;">Bellman-Table</h3>';
-  } else {
-    container.innerHTML = '<h3 style="text-align: center;">Q-Table</h3>';
-  }
+  container.innerHTML =
+    '<h3 style="text-align: left; padding-left: 25%;">Bellman-Table</h3>';
 
   const table = document.createElement("table");
   table.border = 1;
-  table.style.margin = "0 auto"; // Center the table horizontally
+  table.style.margin = "0 0 0 50px";
   table.style.textAlign = "center"; // Center-align the content in cells
+  table.style.borderCollapse = "collapse"; // Collapse borders for a cleaner look
+  table.style.width = "60%"; // Set table width
+  table.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.1)"; // Add shadow for depth
 
   // Determine all unique actions across all states
   const allActions = new Set();
@@ -622,9 +538,14 @@ function displayQTable(q, id) {
   // Create table header with action columns and "Max Value" column
   const headerRow = document.createElement("tr");
   headerRow.innerHTML =
-    `<th>State</th>` +
-    actionsArray.map((action) => `<th>Action ${action}</th>`).join("") +
-    `<th><strong>Max Value</strong></th>`; // Make the header bold
+    `<th style="padding: 10px; background-color: #f2f2f2;">State</th>` +
+    actionsArray
+      .map(
+        (action) =>
+          `<th style="padding: 10px; background-color: #f2f2f2;">Action ${action}</th>`
+      )
+      .join("") +
+    `<th style="padding: 10px; background-color: #f2f2f2;"><strong>Max Value</strong></th>`; // Make the header bold
   table.appendChild(headerRow);
 
   // Populate table rows with states, their corresponding action Q-values, and the max value
@@ -639,15 +560,17 @@ function displayQTable(q, id) {
         if (qValue !== undefined) {
           maxValue = Math.max(maxValue, qValue); // Update max value
         }
-        return `<td>${qValue !== undefined ? qValue.toFixed(6) : "-"}</td>`;
+        return `<td style="padding: 10px;">${
+          qValue !== undefined ? qValue.toFixed(6) : "-"
+        }</td>`;
       })
       .join("");
 
     // Add row with state, action Q-values, and max value
     row.innerHTML =
-      `<td>${state}</td>` +
+      `<td style="padding: 10px; background-color: #f9f9f9;">${state}</td>` +
       actionCells +
-      `<td><strong>${
+      `<td style="padding: 10px; background-color: #f9f9f9;"><strong>${
         maxValue !== Number.NEGATIVE_INFINITY ? maxValue.toFixed(6) : "-"
       }</strong></td>`; // Make max value bold
     table.appendChild(row);
@@ -680,10 +603,22 @@ solveBButton.addEventListener("click", () => {
   discountInput.placeholder = "Enter discount factor (0-1)";
   discountInput.id = "discountInput";
   discountInput.style.width = "200px"; // Adjust width as needed
+  discountInput.style.padding = "10px";
+  discountInput.style.marginRight = "10px";
+  discountInput.style.border = "1px solid #ccc";
+  discountInput.style.borderRadius = "5px";
+  discountInput.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.1)";
 
   const setButton = document.createElement("button");
   setButton.textContent = "Set";
   setButton.id = "setButton";
+  setButton.style.padding = "10px 20px";
+  setButton.style.border = "none";
+  setButton.style.borderRadius = "5px";
+  setButton.style.backgroundColor = "#007bff";
+  setButton.style.color = "#fff";
+  setButton.style.cursor = "pointer";
+  setButton.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.1)";
 
   // Append input and button to the container
   container.appendChild(discountInput);

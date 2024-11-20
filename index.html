@@ -1,37 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MDP Visualizer</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <h1>Markov Decision Process Visualizer</h1>
-    Click on 'Add State' and then click anywhere on the canvas to add a new state. <br>
-    Click on 'Add Transition' and then click on 2 states to add a transition between them. <br>
-    Click on solve, enter the discount factor, click on set, click on next. <br> <br>
+    Click on 'Add State' and then click anywhere on the canvas to add a new
+    state. <br />
+    Click on 'Add Transition' and then click on 2 states to add a transition
+    between them. <br />
+    Click on solve, enter the discount factor, click on set, click on next.
+    <br />
+    <br />
     <div id="container">
-        <canvas id="mdpCanvas" width="1000" height="500" style="border: 3px solid black;"></canvas>
-        
-        
-        <div id="sidebar">
-            <h2>Transitions</h2>
-            <ul id="transitionList"></ul>
-        </div>
+      <canvas
+        id="mdpCanvas"
+        width="1000"
+        height="500"
+        style="border: 3px solid black"
+      ></canvas>
+
+      <div id="sidebar">
+        <h2>Transitions</h2>
+        <ul id="transitionList"></ul>
+      </div>
     </div>
-    
+
     <div id="controls">
-        <button id="addStateButton">Add State</button>
-        <button id="addTransitionButton">Add Transition</button>
-        <button id="solveB">SolveB</button>
-        <!-- Add the Next button to your HTML -->
-        <button id="nextB">Next</button>
-        <pre id="qTableDisplay"></pre> <!-- Display Q-table -->
+      <button id="addStateButton">Add State</button>
+      <button id="addTransitionButton">Add Transition</button>
+      <button id="solveB">SolveB</button>
+      <!-- Add the Next button to your HTML -->
+      <button id="nextB">Next</button>
+      <!-- <pre id="qTableDisplay"></pre> -->
+      <!-- Display Q-table -->
     </div>
-    
+
+    <pre id="qTableDisplay"></pre>
     <ul id="qTableList"></ul>
-    
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="app.js"></script>
-</body>
+  </body>
 </html>
