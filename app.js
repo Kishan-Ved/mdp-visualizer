@@ -183,7 +183,7 @@ class Transition {
       const startAngle = (7 * Math.PI) / 4;
       const endAngle = (5 * Math.PI) / 4;
 
-      if(indexInStack == 0) {
+      if (indexInStack == 0) {
         ctx.beginPath();
         ctx.arc(
           fromX,
@@ -213,7 +213,7 @@ class Transition {
 
       // Draw stacked rectangle above the loop
       const rectYOffset =
-        radius + 2*loopRadius + transitionStackOffset * indexInStack;
+        radius + 2 * loopRadius + transitionStackOffset * indexInStack;
       drawRPBox(
         fromX,
         fromY - rectYOffset,
@@ -246,24 +246,24 @@ class Transition {
         // Calculate control point for the curve
         const midPointX = (startPoint.x + endPoint.x) / 2;
         const midPointY = (startPoint.y + endPoint.y) / 2;
-      
+
         const dx = endPoint.x - startPoint.x;
         const dy = endPoint.y - startPoint.y;
         const offset = 30; // Curve offset
-      
+
         // Perpendicular offset
         const controlX = midPointX - offset * (dy / Math.hypot(dx, dy));
         const controlY = midPointY + offset * (dx / Math.hypot(dx, dy));
-      
+
         // Determine curve direction
         const isCurveUpward = controlY < midPointY;
-      
+
         // Draw curved arrow
         ctx.beginPath();
         ctx.moveTo(startPoint.x, startPoint.y);
         ctx.quadraticCurveTo(controlX, controlY, endPoint.x, endPoint.y);
         ctx.stroke();
-      
+
         // Arrowhead at end
         const angle = Math.atan2(endPoint.y - controlY, endPoint.x - controlX);
         ctx.lineTo(
@@ -276,24 +276,24 @@ class Transition {
           endPoint.y - 10 * Math.sin(angle + Math.PI / 8)
         );
         ctx.stroke();
-      
+
         // Set box position with stacking
         const stackDirection = isCurveUpward ? -1 : 1; // -1 for upward stacking, 1 for downward
         midX = controlX;
         midY = controlY + stackDirection * transitionStackOffset * indexInStack;
-      }
-       else {
+      } else {
         // Straight arrow logic
         ctx.beginPath();
         console.log("Straight arrow");
-        if(indexInStack == 0) {
+        if (indexInStack == 0) {
           drawArrow(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
         }
 
         // Set box position with stacking
         midX = (startPoint.x + endPoint.x) / 2;
         midY =
-          (startPoint.y + endPoint.y) / 2 + transitionStackOffset * indexInStack;
+          (startPoint.y + endPoint.y) / 2 +
+          transitionStackOffset * indexInStack;
       }
 
       // Draw the stacked rectangle at the calculated position
@@ -301,7 +301,6 @@ class Transition {
     }
   }
 }
-
 
 // Add State button logic
 addStateButton.addEventListener("click", () => {
@@ -326,7 +325,6 @@ addTransitionButton.addEventListener("click", () => {
   } else {
     addTransitionButton.innerText = "Add Transition";
   }
-  
 });
 
 // Canvas click event to add state or transition
@@ -640,10 +638,10 @@ function displayQTable(q, id) {
 
 // Add event listener for the Next button
 const nextBButton = document.getElementById("nextB");
-nextBButton.addEventListener("click", () => {
+nextBButton.addEventListener("click", async () => {
   if (currentIteration < iterations) {
-    displayQTable(qb, "bLearningTable");
-    bellmanUpdate(); // Perform one iteration
+    await bellmanUpdate(); // Perform one iteration and wait until it completes
+    displayQTable(qb, "bLearningTable"); // Update the table after Bellman update
   } else {
     alert("All iterations completed!");
   }
