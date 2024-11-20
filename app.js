@@ -513,7 +513,7 @@ async function bellmanUpdate() {
   for (const state of states) {
     const fromState = state.id;
     highlightState(state);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
     const stateTransitions = transitions.filter(
       (transition) => transition.fromState.id === fromState
@@ -528,7 +528,7 @@ async function bellmanUpdate() {
       let qValue = 0;
       for (const transition of saTransitions) {
         highlightTransition(transition);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 10));
 
         const toState = transition.toState.id;
         const reward = transition.reward;
@@ -553,7 +553,7 @@ async function bellmanUpdate() {
           probability,
           maxNextQ
         );
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         qValue += probability * (reward + discountFactor * maxNextQ);
       }
