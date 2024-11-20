@@ -138,7 +138,6 @@ function drawArrow(fromX, fromY, toX, toY, isCurved = false) {
   }
 }
 
-// Transition representation (with arrows adjusted for circumference and RP box)
 class Transition {
   constructor(fromState, toState, reward, action, probability) {
     this.fromState = fromState;
@@ -148,53 +147,82 @@ class Transition {
     this.probability = probability;
   }
 
-  draw() {
+  static drawAllTransitions(transitions, ctx) {
+    // Group transitions by (fromState, toState)
+    const groupedTransitions = {};
+
+    transitions.forEach((transition) => {
+      const key = `${transition.fromState.id}-${transition.toState.id}`;
+      if (!groupedTransitions[key]) {
+        groupedTransitions[key] = [];
+      }
+      groupedTransitions[key].push(transition);
+    });
+
+    // Draw all transitions in each group
+    for (const key in groupedTransitions) {
+      const transitionGroup = groupedTransitions[key];
+
+      transitionGroup.forEach((transition, index) => {
+        transition.draw(ctx, index, transitionGroup.length);
+      });
+    }
+  }
+
+  draw(ctx, indexInStack, totalInStack) {
+    console.log(indexInStack);
     const { x: fromX, y: fromY } = this.fromState;
     const { x: toX, y: toY } = this.toState;
 
-    const radius = this.fromState.radius; // Assume both states have the same radius
+    const radius = this.fromState.radius; // Circle radius for arrow calculation
+    const transitionStackOffset = 30; // Vertical offset for stacking rectangles
 
     if (this.fromState === this.toState) {
-      // Self-loop
+      // Self-loop logic
       const loopRadius = 40;
       const startAngle = (7 * Math.PI) / 4;
       const endAngle = (5 * Math.PI) / 4;
 
-      ctx.beginPath();
-      ctx.arc(
-        fromX,
-        fromY - radius - loopRadius,
-        loopRadius,
-        startAngle,
-        endAngle
-      );
-      ctx.stroke();
+      if(indexInStack == 0) {
+        ctx.beginPath();
+        ctx.arc(
+          fromX,
+          fromY - radius - loopRadius,
+          loopRadius,
+          startAngle,
+          endAngle
+        );
+        ctx.stroke();
 
-      // Arrowhead
-      const arrowX = fromX + loopRadius * Math.cos(endAngle);
-      const arrowY =
-        fromY - radius - loopRadius + loopRadius * Math.sin(endAngle);
-      const angle = endAngle - Math.PI / 2;
-      ctx.lineTo(
-        arrowX - 10 * Math.cos(angle - Math.PI / 6),
-        arrowY - 10 * Math.sin(angle - Math.PI / 6)
-      );
-      ctx.moveTo(arrowX, arrowY);
-      ctx.lineTo(
-        arrowX - 10 * Math.cos(angle + Math.PI / 6),
-        arrowY - 10 * Math.sin(angle + Math.PI / 6)
-      );
-      ctx.stroke();
+        // Arrowhead
+        const arrowX = fromX + loopRadius * Math.cos(endAngle);
+        const arrowY =
+          fromY - radius - loopRadius + loopRadius * Math.sin(endAngle);
+        const angle = endAngle - Math.PI / 2;
+        ctx.lineTo(
+          arrowX - 10 * Math.cos(angle - Math.PI / 6),
+          arrowY - 10 * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.moveTo(arrowX, arrowY);
+        ctx.lineTo(
+          arrowX - 10 * Math.cos(angle + Math.PI / 6),
+          arrowY - 10 * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.stroke();
+      }
 
-      // Draw the rectangle at the top of the loop
+      // Draw stacked rectangle above the loop
+      const rectYOffset =
+        radius + 2*loopRadius + transitionStackOffset * indexInStack;
       drawRPBox(
         fromX,
-        fromY - radius - 2 * loopRadius,
+        fromY - rectYOffset,
         this.reward,
         this.action,
         this.probability
       );
     } else {
+      // Logic for transitions between two different states
       const startPoint = calculateCircumferencePoint(
         fromX,
         fromY,
@@ -218,21 +246,24 @@ class Transition {
         // Calculate control point for the curve
         const midPointX = (startPoint.x + endPoint.x) / 2;
         const midPointY = (startPoint.y + endPoint.y) / 2;
-
+      
         const dx = endPoint.x - startPoint.x;
         const dy = endPoint.y - startPoint.y;
         const offset = 30; // Curve offset
-
+      
         // Perpendicular offset
         const controlX = midPointX - offset * (dy / Math.hypot(dx, dy));
         const controlY = midPointY + offset * (dx / Math.hypot(dx, dy));
-
+      
+        // Determine curve direction
+        const isCurveUpward = controlY < midPointY;
+      
         // Draw curved arrow
         ctx.beginPath();
         ctx.moveTo(startPoint.x, startPoint.y);
         ctx.quadraticCurveTo(controlX, controlY, endPoint.x, endPoint.y);
         ctx.stroke();
-
+      
         // Arrowhead at end
         const angle = Math.atan2(endPoint.y - controlY, endPoint.x - controlX);
         ctx.lineTo(
@@ -245,23 +276,32 @@ class Transition {
           endPoint.y - 10 * Math.sin(angle + Math.PI / 8)
         );
         ctx.stroke();
-
-        // Set box position at control point
+      
+        // Set box position with stacking
+        const stackDirection = isCurveUpward ? -1 : 1; // -1 for upward stacking, 1 for downward
         midX = controlX;
-        midY = controlY;
-      } else {
-        // Straight arrow
+        midY = controlY + stackDirection * transitionStackOffset * indexInStack;
+      }
+       else {
+        // Straight arrow logic
         ctx.beginPath();
-        drawArrow(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+        console.log("Straight arrow");
+        if(indexInStack == 0) {
+          drawArrow(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+        }
+
+        // Set box position with stacking
         midX = (startPoint.x + endPoint.x) / 2;
-        midY = (startPoint.y + endPoint.y) / 2;
+        midY =
+          (startPoint.y + endPoint.y) / 2 + transitionStackOffset * indexInStack;
       }
 
-      // Draw the rectangle at the calculated position
+      // Draw the stacked rectangle at the calculated position
       drawRPBox(midX, midY, this.reward, this.action, this.probability);
     }
   }
 }
+
 
 // Add State button logic
 addStateButton.addEventListener("click", () => {
@@ -286,6 +326,7 @@ addTransitionButton.addEventListener("click", () => {
   } else {
     addTransitionButton.innerText = "Add Transition";
   }
+  
 });
 
 // Canvas click event to add state or transition
@@ -358,7 +399,7 @@ function updateTransitionList() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   states.forEach((state) => state.draw());
-  transitions.forEach((transition) => transition.draw());
+  Transition.drawAllTransitions(transitions, ctx);
 }
 
 let qb = {}; // Q-table
@@ -495,18 +536,35 @@ function initializeQTable() {
 
 function highlightTransition(transition) {
   const { fromState, toState } = transition;
+  const indexInStack = 0; // Assuming index 0 for simplicity
+  const totalInStack = 1; // Assuming only one transition to highlight
+
+  // Save the current context state
   ctx.save();
+
+  // Set stroke style for highlighting
   ctx.strokeStyle = "red";
   ctx.lineWidth = 3;
-  transition.draw();
+
+  // Draw the transition with the specified index and total in stack
+  transition.draw(ctx, indexInStack, totalInStack);
+
+  // Restore the context state
   ctx.restore();
 }
 
 function highlightState(state) {
+  // Save the current context state
   ctx.save();
-  ctx.strokeStyle = "green";
-  ctx.lineWidth = 3;
+
+  // Set fill style for highlighting (corrected the typo)
+  ctx.fillStyle = "green";
+  ctx.lineWidth = 6;
+
+  // Draw the state
   state.draw();
+
+  // Restore the context state
   ctx.restore();
 }
 
@@ -661,8 +719,8 @@ function displayQTable(q, id) {
 const nextBButton = document.getElementById("nextB");
 nextBButton.addEventListener("click", () => {
   if (currentIteration < iterations) {
-    bellmanUpdate(); // Perform one iteration
     displayQTable(qb, "bLearningTable");
+    bellmanUpdate(); // Perform one iteration
   } else {
     alert("All iterations completed!");
   }
